@@ -20,16 +20,16 @@
         "agents": true
     },
     "agents": {
-        "pi_divide_by_max_angular_velocity": 0.1,
-        "cruise_speed": 1.5,
-        "curise_speed": 1.5,
+        "pi_divide_by_max_angular_velocity": 3,
+        "cruise_speed": 3,
+        "curise_speed": 3,
         "dimension": 0.5,
-        "number": 4
+        "number": 10
     },
     "simulator": {
         "use_polygon_workspace": false,
         "use_default_setup": true,
         "use_gridmap": true,
-        "steps_per_sec": 10
+        "steps_per_sec": 30
     }
 }
