@@ -94,8 +94,8 @@ pip install networkx shapely pygame cmd2 enum34
 # Data processing and visualization
 pip install numpy pandas matplotlib
 
-# protobuf (specific version required)
-pip install "protobuf<3.20"
+# protobuf (with grpcio-tools for recompiling protocol buffers)
+pip install protobuf grpcio-tools
 ```
 
 ```batch

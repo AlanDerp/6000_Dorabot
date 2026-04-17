@@ -21,8 +21,7 @@
     },
     "agents": {
         "pi_divide_by_max_angular_velocity": 3,
-        "cruise_speed": 3,
-        "curise_speed": 3,
+        "cruise_speed": 5,
         "dimension": 0.5,
         "number": 10
     },

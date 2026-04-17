@@ -362,7 +362,7 @@ def start_simulator(args, receive_q = None, send_q = None):
     gridmap.static_obstacle_inflation()
 
     # Set random agents spawn location seed
-    spawn_agents_random_seed = 200
+    spawn_agents_random_seed = 500
     random.seed(spawn_agents_random_seed)
 
     # Get random location of agent
@@ -370,8 +370,12 @@ def start_simulator(args, receive_q = None, send_q = None):
         agents_number)
 
     # assign local and global planner according to cmd input
-    general_local_planner = process_local_planner_cmd(cmd_args.local_planner)
-    general_global_planner = process_global_planner_cmd(cmd_args.global_planner)
+    # general_local_planner = process_local_planner_cmd(cmd_args.local_planner)
+    general_local_planner = VirtualForcePlanner
+    print("Local planner: ", general_local_planner)
+    # general_global_planner = process_global_planner_cmd(cmd_args.global_planner)
+    general_global_planner = RRTStar
+    print("Global planner: ", general_global_planner)
 
     # Create agents
     # The size of agents should be at least one gird
