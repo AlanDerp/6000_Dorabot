@@ -4,3 +4,4 @@ import local_planners.rvo_planner
 import local_planners.hrvo_planner
 import local_planners.DD_planner
 import local_planners.flc_local_planner
+import local_planners.hybrid_planner

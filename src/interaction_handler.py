@@ -43,6 +43,13 @@ def create_cmd_parser(prog=None):
     general_control.add_argument('--gp', action='store', type=str, dest='global_planner', help='Set the global planners for all agents, choices include: LayeredAStar | RRTStar | MARRTStar | INashRRT')
     general_control.add_argument('--lp', action='store', type=str, dest='local_planner', help='Set the local planners for all agents, choices include: VirtualForcePlanner | FLCPlanne')
     
+    # data_collection
+    data_collection = parser.add_argument_group('Data Collection', 'Commands for logging simulation data.')
+    data_collection.add_argument('--record', action='store_true', dest='record', help='Enable data recording in jsonl format')
+    data_collection.add_argument('--record_freq', action='store', type=int, default=10, dest='record_freq', help='Set the frequency of data logging in simulation steps')
+    data_collection.add_argument('--record_file', action='store', type=str, dest='record_file', help='Set target file path for data recording')
+
+    
     # json_control
     json_control.add_argument('--agent', action='store', type=int, dest='agents_num', help='Set the number of agents', metavar='N')
     json_control.add_argument('--port', action='store', type=int, nargs=2, dest='ports_num', help='Set the number of loading and unloading ports', metavar=('LOAD', 'UNLOAD'))

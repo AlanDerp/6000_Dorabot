@@ -19,6 +19,7 @@ from local_planners.rvo_planner import RVOPlanner
 from local_planners.DD_planner import DDPlanner
 from local_planners.hrvo_planner import HRVOPlanner
 from local_planners.flc_local_planner import FLCPlanner
+from local_planners.hybrid_planner import HybridHRVOForcePlanner
 from global_planners.global_planner import MapType
 from global_planners.sample_global_planner import SimpleAStar
 from global_planners.layered_astar_planner import LayeredAStar
@@ -66,6 +67,12 @@ class Simulator(b2ContactListener):
         super(Simulator, self).__init__()
         # whether run headless
         self.simulation_times = cmd_args.time
+        self.record_data = getattr(cmd_args, 'record', False)
+        if self.record_data:
+            from data_logger import DataLogger
+            self.data_logger = DataLogger(frequency=cmd_args.record_freq, filename=cmd_args.record_file)
+        else:
+            self.data_logger = None
         self.TIME_STEP = 1.0/60
         self.server = None
         self.agents = []
@@ -249,6 +256,8 @@ class Simulator(b2ContactListener):
         self.time = self.get_simulator_time() -  self.start_time
         self.task_count = sum([port.task_count for port in list(self.environment.unloading_ports.values())])
         Simulator.step_counter += 1
+        if self.record_data and Simulator.step_counter % self.data_logger.frequency == 0:
+            self.data_logger.log_step(self.time, self.task_count, self.agents)
         if Simulator.step_counter % 10 == 0:
             self.heatmap_data.extend([(agent.position.y, agent.position.x) for agent in self.agents])
         if self.time % 60 ==0 and self.task_count >0:
@@ -371,9 +380,12 @@ def start_simulator(args, receive_q = None, send_q = None):
 
     # assign local and global planner according to cmd input
     # general_local_planner = process_local_planner_cmd(cmd_args.local_planner)
+    # general_local_planner = HRVOPlanner
     general_local_planner = VirtualForcePlanner
+    # general_local_planner = HybridHRVOForcePlanner
     print("Local planner: ", general_local_planner)
     # general_global_planner = process_global_planner_cmd(cmd_args.global_planner)
+    # general_global_planner = LayeredAStar
     general_global_planner = RRTStar
     print("Global planner: ", general_global_planner)
 
@@ -416,6 +428,8 @@ def start_simulator(args, receive_q = None, send_q = None):
     
     simulator.run(show_visualisation)
 
+    if simulator.record_data:
+        simulator.data_logger.export_data()
 
     print(("Time in seconds:",simulator.time))
     print(("Number of Packages Delivered:", simulator.task_count))

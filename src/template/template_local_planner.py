@@ -40,4 +40,3 @@ class TemplateLocal(LocalPlanner):
 
         speed = compute_direction(position, goal_pose) # return a unit vector
         return (speed[0], speed[1])
-

@@ -213,31 +213,33 @@ def rectify_meter_to_pixel(point):
     return (meter_to_pixel(point.x)+debug_reference_point[0],meter_to_pixel(point.y)+debug_reference_point[1])
 
 def pausable_interface(cmd = False):
-    pygame.display.flip()
+    if pygame.display.get_init():
+        pygame.display.flip()
     paused = cmd
     if paused:
         print("PAUSE searching ...")
     while paused:
-        for event in pygame.event.get():
-            if event.type == KEYDOWN:
-                if event.key == pygame.K_p:
-                    paused = not paused
-                    print("RESUME searching ...")
-                elif event.key == pygame.K_q: # Q/q is pressed
-                    exit()
-                # elif event.key == pygame.K_t:
-                #     return True
+        if pygame.display.get_init():
+            for event in pygame.event.get():
+                if event.type == KEYDOWN:
+                    if event.key == pygame.K_p:
+                        paused = not paused
+                        print("RESUME searching ...")
+                    elif event.key == pygame.K_q: # Q/q is pressed
+                        exit()
+        else:
+            break  # No display means we can't pause using GUI events
     return False
 
 def interaction_listener():
-    pygame.display.flip()
-    terminated = False
-    for event in pygame.event.get():
-        if event.type == KEYDOWN:
-            if event.key == pygame.K_p:
-                terminated = pausable_interface(True)
-            elif event.key == pygame.K_q: # Q/q is pressed
-                exit()
-            # elif event.key == pygame.K_t:
-            #     return True
-    return terminated
+    if pygame.display.get_init():
+        pygame.display.flip()
+        terminated = False
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:
+                if event.key == pygame.K_p:
+                    terminated = pausable_interface(True)
+                elif event.key == pygame.K_q: # Q/q is pressed
+                    exit()
+        return terminated
+    return False

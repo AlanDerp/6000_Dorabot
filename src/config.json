@@ -20,7 +20,7 @@
         "agents": true
     },
     "agents": {
-        "pi_divide_by_max_angular_velocity": 3,
+        "pi_divide_by_max_angular_velocity": 0.5,
         "cruise_speed": 5,
         "dimension": 0.5,
         "number": 10
