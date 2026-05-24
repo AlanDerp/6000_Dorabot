@@ -33,7 +33,7 @@ class LoadingPort(Port):
 
     def get_random_item(self, num_unloading_ports ):
         self.num_unloading_ports = num_unloading_ports
-        item = Item(source_port_id=self.identifier, destination_port_id=random.randrange(0, self.num_unloading_ports))
+        item = Item(source_port_id=self.identifier, destination_port_id=random.randrange(1, self.num_unloading_ports + 1))
         # num_remaining_items = 999 # set to a constant when simulating infinite sequence
         self.items.append(item)
         
@@ -41,7 +41,7 @@ class LoadingPort(Port):
 
     def operate(self):
         if super(LoadingPort, self).operate()==True and len(self.items)>0:
-            self.items.append(Item(source_port_id=self.identifier, destination_port_id=random.randrange(0, self.num_unloading_ports)))
+            self.items.append(Item(source_port_id=self.identifier, destination_port_id=random.randrange(1, self.num_unloading_ports + 1)))
             return True, self.items.pop(0)#self.get_random_item(UnloadingPort.counter)
         else:
             return False, None

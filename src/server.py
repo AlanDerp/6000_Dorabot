@@ -14,6 +14,7 @@ from agents.agent_state_machine import AgentState
 class Server:
     def __init__(self, environment, agents):
         # it is up to server to select which tast manager to use
+        self.environment = environment
         self.agents = agents # server connect to agent
         
         self.task_manager = NaiveTaskManager(environment=environment, agents=agents)

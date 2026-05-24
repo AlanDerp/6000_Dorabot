@@ -67,12 +67,14 @@ class NaiveAgent(Agent):
                 else:
                     index = randrange(0,2)
                     self.current_local_planner = self.local_planner[0]#[index]
+                self._cache_bc_observation()
                 act = self.current_local_planner.compute_plan(
                             self.position,
                             self.linear_velocity,
                             self.static_environment,
                             self.perception_module,
                             self.sequence_of_poses)
+                self.last_expert_action = act
                 self.linear_velocity = act 
                 # if act[0] > self.cruise_speed:
                 #     act[0] = self.cruise_speed
@@ -97,3 +99,14 @@ class NaiveAgent(Agent):
             self.task.destination_location = next_goal
             self.destination_location = next_goal
             self.goal_changed = True
+
+    def _cache_bc_observation(self):
+        try:
+            from main_planners.state_encoder import GlobalStateEncoder
+            from main_planners.pi05_state_adapter import Pi05StateAdapter
+
+            self.last_bc_global_state = GlobalStateEncoder().encode(self, self.server)
+            self.last_bc_state_vector = Pi05StateAdapter().to_vector(self, self.last_bc_global_state)
+        except Exception:
+            self.last_bc_global_state = None
+            self.last_bc_state_vector = None

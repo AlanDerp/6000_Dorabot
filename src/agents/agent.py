@@ -142,6 +142,8 @@ class Agent(object):
         self.sequence_of_poses = deque()
         self.replan = False
         self.internal_stations = []
+        self.current_item = None
+        self.last_task_event = None
 
 
     def ini_perception_module(self, simulated_agent, all_simulated_agents, all_ports):
@@ -166,6 +168,7 @@ class Agent(object):
         self.global_planner = global_planner
     def assign_task(self, task):
         self.task = task
+        self.last_task_event = "assign_task"
 
     def observe(self, ray_length_list):
         """ Observation

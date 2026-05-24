@@ -12,6 +12,9 @@ from setup_environment.port import Port
 from server import Server
 from agents.agent_state_machine import AgentState
 from agents.naive_agent import NaiveAgent
+from agents.vla_agent import VLAAgent
+
+# region planner
 from local_planners.local_planner import LocalPlanner
 from local_planners.dull_local_planner import DullPlanner
 from local_planners.virtual_force_planner import VirtualForcePlanner
@@ -20,6 +23,8 @@ from local_planners.DD_planner import DDPlanner
 from local_planners.hrvo_planner import HRVOPlanner
 from local_planners.flc_local_planner import FLCPlanner
 from local_planners.hybrid_planner import HybridHRVOForcePlanner
+# endregion
+
 from global_planners.global_planner import MapType
 from global_planners.sample_global_planner import SimpleAStar
 from global_planners.layered_astar_planner import LayeredAStar
@@ -28,6 +33,7 @@ from global_planners.multiagent_planner_local_entry import MultiAgentPlannerLoca
 from multiagent_global_planners.multiagent_planner import MultiAgentPlanner
 from multiagent_global_planners.marrtstar_planner import MARRTStar
 from multiagent_global_planners.inash_planner import INashRRT
+from main_planners import CentralizedVLACoordinator
 from representation.gridmap_a import GridmapWithNeighbors
 from visualisation import Visualisation
 from math import *
@@ -70,7 +76,12 @@ class Simulator(b2ContactListener):
         self.record_data = getattr(cmd_args, 'record', False)
         if self.record_data:
             from data_logger import DataLogger
-            self.data_logger = DataLogger(frequency=cmd_args.record_freq, filename=cmd_args.record_file)
+            self.data_logger = DataLogger(
+                frequency=cmd_args.record_freq,
+                filename=cmd_args.record_file,
+                mode=getattr(cmd_args, 'record_mode', 'basic'),
+                include_global_state=getattr(cmd_args, 'record_global_state', False),
+            )
         else:
             self.data_logger = None
         self.TIME_STEP = 1.0/60
@@ -99,6 +110,7 @@ class Simulator(b2ContactListener):
         self.agent_details = cmd_args.agent_details
         self.receive_q = None # is used to receive the cmd from controller
         self.send_q = None
+        self.vla_coordinator = None
     # could be loaded from a json file as well.
     def set_environment(self, obstacle_tuples_list = []):
         self.environment = Environment()
@@ -241,13 +253,24 @@ class Simulator(b2ContactListener):
             agent.history_ray_length_list.append(agent.ray_length_list)
             agent.history_ray_point_list.append(agent.ray_point_list)
 
-        for agent in self.agents:
-            self.__update_agent_state(agent, agent.ray_length_list)
-            agent_body = self.b2_objects[agent.get_id()]
-            agent_body.linearVelocity = agent.linear_velocity
-            agent_body.angle = atan2(agent.linear_velocity[1], agent.linear_velocity[0])
-            # uncomment here to make it become differential wheel
-            # self.set_agent_velocity(agent, agent_body)
+        if self.vla_coordinator:
+            for agent in self.agents:
+                agent.observe(agent.ray_length_list)
+                agent.prepare_for_centralized_plan()
+            self.vla_coordinator.plan_and_apply(self.agents, self.server)
+            for agent in self.agents:
+                agent.act()
+                agent_body = self.b2_objects[agent.get_id()]
+                agent_body.linearVelocity = agent.linear_velocity
+                agent_body.angle = atan2(agent.linear_velocity[1], agent.linear_velocity[0])
+        else:
+            for agent in self.agents:
+                self.__update_agent_state(agent, agent.ray_length_list)
+                agent_body = self.b2_objects[agent.get_id()]
+                agent_body.linearVelocity = agent.linear_velocity
+                agent_body.angle = atan2(agent.linear_velocity[1], agent.linear_velocity[0])
+                # uncomment here to make it become differential wheel
+                # self.set_agent_velocity(agent, agent_body)
 
         self.world.Step(self.TIME_STEP, 10, 10)
         """
@@ -257,7 +280,7 @@ class Simulator(b2ContactListener):
         self.task_count = sum([port.task_count for port in list(self.environment.unloading_ports.values())])
         Simulator.step_counter += 1
         if self.record_data and Simulator.step_counter % self.data_logger.frequency == 0:
-            self.data_logger.log_step(self.time, self.task_count, self.agents)
+            self.data_logger.log_step(self.time, self.task_count, self.agents, simulator=self)
         if Simulator.step_counter % 10 == 0:
             self.heatmap_data.extend([(agent.position.y, agent.position.x) for agent in self.agents])
         if self.time % 60 ==0 and self.task_count >0:
@@ -378,23 +401,28 @@ def start_simulator(args, receive_q = None, send_q = None):
     random_agent_spawn_location = random.sample(available_index_list,
         agents_number)
 
-    # assign local and global planner according to cmd input
-    # general_local_planner = process_local_planner_cmd(cmd_args.local_planner)
-    # general_local_planner = HRVOPlanner
-    general_local_planner = VirtualForcePlanner
-    # general_local_planner = HybridHRVOForcePlanner
-    print("Local planner: ", general_local_planner)
-    # general_global_planner = process_global_planner_cmd(cmd_args.global_planner)
-    # general_global_planner = LayeredAStar
-    general_global_planner = RRTStar
-    print("Global planner: ", general_global_planner)
+    use_pi05 = getattr(cmd_args, 'pi05', False)
+    use_vla = getattr(cmd_args, 'vla', False) or use_pi05
+    if use_vla:
+        general_local_planner = None
+        general_global_planner = None
+        if use_pi05:
+            print("Planner mode: pi05 main planner + complement strategy")
+        else:
+            print("Planner mode: mock VLA main planner + complement strategy")
+    else:
+        general_local_planner = process_local_planner_cmd(cmd_args.local_planner) if cmd_args.local_planner else VirtualForcePlanner
+        print("Local planner: ", general_local_planner)
+        general_global_planner = process_global_planner_cmd(cmd_args.global_planner) if cmd_args.global_planner else RRTStar
+        print("Global planner: ", general_global_planner)
 
     # Create agents
     # The size of agents should be at least one gird
     for num in range(agents_number):
         j = int(random_agent_spawn_location[num] / workspace_width)
         i = random_agent_spawn_location[num] % workspace_width
-        test_agent=NaiveAgent(shape=Rectangle(i, j, agents_dimension, agents_dimension),
+        agent_class = VLAAgent if use_vla else NaiveAgent
+        test_agent=agent_class(shape=Rectangle(i, j, agents_dimension, agents_dimension),
             position=Point(i, j), speed = agents_speed, angular_velocity = agent_angular_velocity)
         test_agent.angularVelocity = 1
         test_agent.sensor = Sensor(radius = 5, angle = pi, location = test_agent.shape.get_box2d_location(), shape = b2PolygonShape)
@@ -405,11 +433,24 @@ def start_simulator(args, receive_q = None, send_q = None):
     
     # Create server
     server = Server(environment=h6_2_workspace, agents=agents) # server also connect to agents
+    simulator.server = server
+    if use_vla:
+        simulator.vla_coordinator = CentralizedVLACoordinator(
+            use_pi05=use_pi05,
+            model_id=cmd_args.pi05_model_id,
+            device=cmd_args.pi05_device,
+            lerobot_path=cmd_args.lerobot_path,
+        )
     # Connect agent to server & set planner
     for agent in agents:
         agent.connect_to_central_server(server)
-        simulator.set_local_planner(agent, general_local_planner)
-        simulator.set_global_planner(agent, general_global_planner)
+        if use_vla:
+            agent.static_environment = h6_2_workspace.static_continuous_space
+            simulator.agent_local_planner = 'SafetyShield'
+            simulator.agent_global_planner = 'CentralizedPi05MainPlanner' if use_pi05 else 'CentralizedMockMainPlanner'
+        else:
+            simulator.set_local_planner(agent, general_local_planner)
+            simulator.set_global_planner(agent, general_global_planner)
 
     simulator.set_agents(agents)
     if not simulator.free_control:

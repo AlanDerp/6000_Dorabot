@@ -19,3 +19,26 @@ src/.envrc.*
 src/.env.local
 src/.env.local.*    
 src/global_planners/__pycache__/
+
+# Generated samples, converted datasets, and pi0.5 training artifacts
+src/data_samples/
+src/converted/
+outputs/
+wandb/
+runs/
+
+# Large model/dataset artifacts
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.onnx
+*.npy
+*.npz
+*.arrow
+*.parquet
+*.jsonl
+*.mp4
+*.webm
+*.avi

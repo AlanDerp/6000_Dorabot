@@ -75,8 +75,10 @@ class AgentStateMachine:
 def go_for_next_loading_task(agent, server):
     task = server.get_loading_task(agent)
     agent.assign_task(task)
+    agent.current_item = None
     agent.destination_location = task.destination_location
     agent.state = AgentState.CRUISE
+    agent.last_task_event = "assigned_loading_task"
     server.update_data(agent)
     agent.goal_changed = True
 
@@ -105,11 +107,16 @@ def operate(agent, server):
     if operation_is_done:
         agent.task.port.confirm_exit()
         if agent.task.type == TaskType.GO_TO_LOADING_PORT:
+            agent.current_item = item
             agent.assign_task(server.get_unloading_task(agent, item))
+            agent.last_task_event = "loaded_item_assigned_unloading_task"
         elif agent.task.type == TaskType.GO_TO_UNLOADING_PORT:
+            agent.current_item = None
             agent.assign_task(server.get_loading_task(agent))
+            agent.last_task_event = "unloaded_item_assigned_loading_task"
         else:
             raise Exception(" Unclassifed operation types ")
+        agent.destination_location = agent.task.destination_location
         agent.state = AgentState.CRUISE
         server.update_data(agent)
         agent.goal_changed = True

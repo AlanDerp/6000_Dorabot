@@ -42,12 +42,19 @@ def create_cmd_parser(prog=None):
     general_control.add_argument('--title', action='store', type=str, default="Dorabot Minions", dest='title', help='Set the title of the simulator')
     general_control.add_argument('--gp', action='store', type=str, dest='global_planner', help='Set the global planners for all agents, choices include: LayeredAStar | RRTStar | MARRTStar | INashRRT')
     general_control.add_argument('--lp', action='store', type=str, dest='local_planner', help='Set the local planners for all agents, choices include: VirtualForcePlanner | FLCPlanne')
+    general_control.add_argument('--vla', action='store_true', dest='vla', help='Use VLA-style main planner and complement strategy instead of global/local planners')
+    general_control.add_argument('--pi05', action='store_true', dest='pi05', help='Use real LeRobot pi05 policy as the VLA main planner')
+    general_control.add_argument('--pi05_model_id', action='store', type=str, default='lerobot/pi05_base', dest='pi05_model_id', help='pi05 model id or local pretrained path')
+    general_control.add_argument('--pi05_device', action='store', type=str, default=None, dest='pi05_device', choices=[None, 'cpu', 'cuda', 'mps'], help='Device for pi05 inference')
+    general_control.add_argument('--lerobot_path', action='store', type=str, default=None, dest='lerobot_path', help='Optional path to the LeRobot repo or src directory')
     
     # data_collection
     data_collection = parser.add_argument_group('Data Collection', 'Commands for logging simulation data.')
     data_collection.add_argument('--record', action='store_true', dest='record', help='Enable data recording in jsonl format')
     data_collection.add_argument('--record_freq', action='store', type=int, default=10, dest='record_freq', help='Set the frequency of data logging in simulation steps')
     data_collection.add_argument('--record_file', action='store', type=str, dest='record_file', help='Set target file path for data recording')
+    data_collection.add_argument('--record_mode', action='store', type=str, default='basic', choices=['basic', 'bc', 'joint_bc'], dest='record_mode', help='Choose basic trajectory logs, per-agent BC samples, or centralized joint BC samples')
+    data_collection.add_argument('--record_global_state', action='store_true', dest='record_global_state', help='Include full global state in BC logs')
 
     
     # json_control
